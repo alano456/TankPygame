@@ -101,16 +101,7 @@ def get_angle_to_enemy(p_dir_idx, px, py, ex, ey):
     return diff
 
 def check_hitscan_inference(px, py, p_dir_idx, ex, ey, env):
-    # px, py etc are likely pixels. Convert to Grid if needed?
-    # In train_sarsa, check_hitscan used env.grid which is grid-based?
-    # No, env properties are typically Grid coords IF env is Grid based.
-    # TankEnv uses X,Y as floating point grid coords (0.0 to 12.0).
-    # But main.py converts to pixels for rendering?
-    # In main.py loop, "obs = self.env._get_obs()" returns pixels if env is pixel-based?
-    # TankEnv __init__ says "width=20".
-    # obs returned by env contains whatever env uses.
-    # Let's assume obs contains Grid Coords because tank_env.py is shared.
-    # So we can use simple raycasting on grid.
+
     
     dx, dy = 0, 0
     # Dir Idx: 0=N, 1=E, 2=S, 3=W
@@ -154,30 +145,9 @@ def get_hunter_state(obs, env):
     if dist < 3: dist_bin = 0
     elif dist < 8: dist_bin = 1
     else: dist_bin = 2
-    
-    # 4. Cooldown (Use index 10 from obs if available, or env?)
-    # Obs: [px, py, p_dir, p_hp, ex, ey, e_dir, e_hp, ... , cooldown_p, cooldown_e, ...]
-    # TankEnv obs size is 14. 
-    # Index 10 might be P_Cooldown? No, check tank_env.
-    # Env state: p_wall_F (8), p_wall_L(9), p_wall_R(10)...
-    # Cooldown might not be in obs by default?
-    # train_sarsa uses env.cooldowns['player'].
-    # We must rely on env being passed correctly relative to role?
-    # In get_bot_action, we pass 'env'.
-    # But if role="enemy", env.cooldowns['enemy'] is what we want.
-    # main.py get_bot_action handles state swapping but maybe not cooldowns?
-    
-    # Let's infer cooldown from env directly using role logic if possible.
-    # BUT get_hunter_state signature here is (obs, env).
-    # We'll punt and assume 0 for now or try to fetch from env?
-    # Actually, let's look at get_discrete_state in main.py. It accesses 'env.cooldowns[role]'.
-    # We should add 'role' to get_hunter_state or guess.
+   
     pass
-    # We will implement logic inside get_hunter_state with 'role' arg or assume 'player' relative?
-    # The 'obs' passed to us is already swapped by get_bot_action for the enemy.
-    # So 'px' is 'Bot's X'.
-    # So we want 'Bot's Cooldown'.
-    # Implementing helper below.
+    
 
 def get_q_hunter_state_inference(obs, env, role):
     # obs is already relative (swapped if enemy)
@@ -205,14 +175,7 @@ def get_q_hunter_state_inference(obs, env, role):
     elif p_dir_idx == 3: dx = -1
     
     wall_ahead = 1
-    # Convert pixels to grid (approx) or assume obs is GRID if coming from env?
-    # In main.py obs seems to be pixels? NO.
-    # In train_sarsa, obs is [px, py...]. tank_env returns self.player.x which is GRID COORDS (0-11).
-    # main.py passes obs into get_bot_action.
-    # wait, main.py run_game: "obs = self.env._get_obs()".
-    # TankEnv uses floats 0-12.
-    # But rendering uses pixels.
-    # CHECK: TankEnv x,y are initialized as integers or floats in grid range.
+   
     # So `px + dx` works directly.
     fx, fy = int(px + dx), int(py + dy)
     if 0 <= fx < env.width and 0 <= fy < env.height:
@@ -271,11 +234,7 @@ def get_discrete_state(obs, env, role="player"):
     # 5. Cooldown
     # Now using role!
     cooldown = 1 if env.cooldowns[role] > 0 else 0
-    
-    # 6. Trapped Sensor (Corner Detection)
-    # Env width/height are grid units in main.py? 
-    # Yes, env = TankEnv(20,20). px/py are pixels.
-    # Convert px/py to grid coords first.
+  
     gpx, gpy = px/40, py/40
     dist_x = min(gpx, env.width - gpx)
     dist_y = min(gpy, env.height - gpy)
@@ -292,14 +251,7 @@ def get_dqn_inference_state(obs, env, role):
     dx = ex - px
     dy = ey - py
     target_rad = math.atan2(dy, dx)
-    
-    # HunterWrapper uses map: {"N": -1.57, "S": 1.57, "E": 0, "W": 3.14}
-    # Main.py obs[2] is Index: 0=N, 1=E, 2=S, 3=W.
-    # Map index to Rads:
-    # 0 -> -1.57 (N)
-    # 1 -> 0 (E)
-    # 2 -> 1.57 (S)
-    # 3 -> 3.14 (W)
+   
     
     curr_rad = 0
     if p_dir_idx == 0: curr_rad = -1.57
@@ -311,58 +263,10 @@ def get_dqn_inference_state(obs, env, role):
     sin_a = math.sin(rel_rad)
     cos_a = math.cos(rel_rad)
     
-    # 2. Dist (Normalized by ~17 assuming 20x20 grid, diag ~28 blocks? Wait.)
-    # HunterDeepWrapper uses "dist / 17.0".
-    # Here px, py are PIXELS.
-    # 1 block = 40 pixels. 20 blocks = 800 pixels.
-    # Wrapper in train_dqn connects to TankEnv which returns GRID COORDS (float).
-    # main.py "obs" comes from self.env._get_obs() which returns GRID COORDS (floats).
-    # So raw values match!
-    # BUT wait, does main.py env return grid coords?
-    # View line 157 in main.py: "dist = abs(dx) + abs(dy)". 
-    # View line 195: "gpx, gpy = px/40, py/40".
-    # This implies px is PIXELS if we must divide by 40.
-    # CHECK: game.tank.py. self.x is grid coord or pixel?
-    # TankEnv.py: self.player = Tank... 
-    # In TankEnv, usually positions are grid coords if using Gymnasium box logic?
-    # Let's verify via "dist / 17.0".
-    # If main.py obs is pixels (0-800), and training was grid (0-20), normalization is huge difference.
-    # Need to normalize pixels to grid first!
-    
-    # Wait, lets check TankEnv.rect vs x,y.
-    # If TankEnv is used directly in main.py, let's see _get_obs there.
-    # ... I will assume obs is PIXELS in main.py because renderer uses it directly?
-    
-    # CRITICAL: main.py `run_game` calls `self.env._get_obs()`.
-    # `TankEnv` (in env/tank_env.py) returns `self.player.x`.
-    # `Tank` (game/tank.py) `self.x` is initialized to `1 * TILE_SIZE`.
-    # So `Tank` uses PIXELS.
-    # `TankEnv` logic: `obs = [...]` -> returns PIXELS.
-    # `HunterDeepWrapper` (train_dqn.py): `self.env.player.x`. Uses PIXELS (e.g. 40, 80).
-    # Normalization: `dist / 17.0`.
-    # 17.0 seems small for pixels (800).
-    # Maybe `HunterDeepWrapper` was written assuming `dist` is blocks?
-    # `math.hypot(ex-px, ey-py)` result is ~500 pixels. / 17 = 29.
-    # Neural network input 29 is big. Box is -1 to 1.
-    # User's code: `dist = math.hypot(...) / 17.0`. 
-    # Maybe user changed TankEnv to return blocks? Or user made a mistake in `train_dqn` wrapper.
-    # OR `TankEnv` uses blocks.
-    # Let's check `TankEnv` again quickly later.
-    # Assuming user code is "Correct" for training, I must match it.
-    # BUT if training is broken (inputs > 1), then DQN won't learn well.
-    # 17.0 is typical for 20x20 grid DIAGONAL (~28) if inputs are BLOCKS.
-    # If inputs are PIXELS (800), diagonal is 1131.
-    # So logic: Convert pixels to blocks, then divide by 17.
+
     
     dist_pixels = math.hypot(dx, dy)
     dist_blocks = dist_pixels / 40.0
-    # Dynamic Normalization... REMOVED old function content placeholder or keep for Q-Learning?
-    # Q-Learning uses get_q_hunter_state_inference.
-    # get_dqn_inference_state was only for DQN.
-    # I should remove get_dqn_inference_state entirely.
-    # But I can't in this chunk.
-    # I will just remove the function separately later if needed, but it's fine if unused.
-    return 1 # Placeholder
 
     
     # 3. Cooldown
