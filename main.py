@@ -56,10 +56,7 @@ class QLearningAgent:
     def get_action(self, state, epsilon=0.0):
         # Action Masking (blokada strzału na cooldownie)
         can_shoot = state[-1] # Ostatni element stanu to cooldown (1=tak, 0=nie) - Wait, in train_qlearning it is (0=tak if env.cooldown==0)
-        # Check train_qlearning: "can_shoot = 1 if env.cooldowns['player'] == 0 else 0"
-        # So 1 means READY.
-        # Check train_qlearning get_action: "if can_shoot == 1: valid_actions.append(3)"
-        
+   
         valid_actions = [0, 1, 2]
         if can_shoot == 1: valid_actions.append(3)
 
@@ -80,15 +77,7 @@ class QLearningAgent:
         return random.choice(best_actions)
 
 def get_angle_to_enemy(p_dir_idx, px, py, ex, ey):
-    # Mapping direction index to degrees
-    # N=0, E=1, S=2, W=3. In Pygame Y grows down.
-    # N(0,-1) = -90, E(1,0) = 0, S(0,1) = 90, W(-1,0) = 180?
-    # Wait, atan2(y, x):
-    # N: atan2(-1, 0) = -90 (Correct)
-    # E: atan2(0, 1) = 0 (Correct)
-    # S: atan2(1, 0) = 90 (Correct)
-    # W: atan2(0, -1) = 180 (Correct)
-    
+
     dir_angles = {0: -90, 1: 0, 2: 90, 3: 180}
     current_angle = dir_angles.get(p_dir_idx, 0)
 
@@ -450,21 +439,12 @@ class GameApp:
                 # Update Buffer
                 if not hasattr(agent, "frame_buffer"): agent.frame_buffer = deque(maxlen=4)
                 
-                # If parameters reset (new game), we might need to clear?
-                # We can't easily detect "new game" here without state.
-                # Heuristic: if empty, fill 4 times.
                 if len(agent.frame_buffer) == 0:
                     for _ in range(4): agent.frame_buffer.append(dqn_state)
                 else:
                     agent.frame_buffer.append(dqn_state)
                 
-                # Stack frames: (4, 5) -> Flatten to (20,) because MLP policy expects flat vector
-                # Wait, SB3 VecFrameStack outputs (4, 5) or (20,)?
-                # "MlpPolicy" flattens automatically?
-                # VecFrameStack with channels_order='last' (default) stacks on last axis?
-                # For Box(5,), shape becomes (5 * 4,) = (20,) usually.
-                # Let's verify standard SB3 behavior. 
-                # Yes, for 1D Box, it concatenates.
+           
                 stacked_state = np.concatenate(list(agent.frame_buffer))
                 
                 # Predict
@@ -479,9 +459,7 @@ class GameApp:
             
         # SARSA / Hunter Logic
         if agent_type == "SARSA":
-             # ... existing SARSA/Hunter logic ...
-             # (Keeping existing code, just ensuring indentation)
-             # Wrapper to handle Diet-Hunter
+         
              q_table = agent.q_table if hasattr(agent, "q_table") else agent
              
              # Calculate state

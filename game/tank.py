@@ -9,7 +9,7 @@ DIR_VECTORS = {
 
 
 class Tank:
-    def __init__(self, x, y, direction="N", hp=1):
+    def __init__(self, x, y, direction="N", hp=3):
         self.x = x
         self.y = y
         self.direction = direction

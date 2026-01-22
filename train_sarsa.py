@@ -135,7 +135,7 @@ def check_hitscan(env):
 
 def get_hunter_state(obs, env):
     """
-    Skupiamy się TYLKO na tym, co potrzebne do zabicia.
+  
     """
     px, py, p_dir_idx = obs[0], obs[1], obs[2]
     ex, ey = obs[4], obs[5]

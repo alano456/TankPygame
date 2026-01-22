@@ -8,9 +8,8 @@ import pickle
 from env.tank_env import TankEnv, Grid
 from analyze_training import analyze_custom
 
-# --- PARAMETRY (Agresywne) ---
-ALPHA = 0.1          # Szybka nauka
-GAMMA = 0.99         # Dalekowzroczność
+ALPHA = 0.1          
+GAMMA = 0.99         
 EPSILON_START = 1.0
 EPSILON_MIN = 0.05
 EPISODES = 50000 

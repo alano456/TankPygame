@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pdf
+logs_dqn/
+logs_qlearning/
+logs_sarsa/

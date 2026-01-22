@@ -23,9 +23,6 @@ while os.path.exists(os.path.join(LOG_DIR, f"report_{run_id}.md")):
 LOG_FILE = os.path.join(LOG_DIR, "training_log.csv")
 STEPS_LOG_FILE = os.path.join(LOG_DIR, "steps_log.csv")
 
-# --- 1. Wrapper: Tłumacz Gry (ZNORMALIZOWANY) ---
-# --- 1. Wrapper: Tłumacz Gry (ZNORMALIZOWANY) ---
-# Imported from agents.wrapper
 
 class AnalysisCallback(BaseCallback):
     def __init__(self, check_freq, log_dir, run_id):
